@@ -8,18 +8,97 @@ output:
 
 ## Loading and preprocessing the data
 
+1. First, we need to load the activity data from the csv file.
+```{r loading}
+activity = read.csv("activity.csv")
+```
 
+2. And we'll transform the values in the 'date' column so they are actual Dates; and the values in the 'interval' column as more user-friendly formatted factors.
+```{r}
+activity$date <- as.Date(activity$date)
+activity$interval <- as.factor(activity$interval)
+```
 
 ## What is mean total number of steps taken per day?
 
+1. We start with a histogram showing the total number of steps taken each day.
+```{r steps-per-day-histogram}
+stepsPerDay <- with(activity[!is.na(activity$steps), ], tapply(steps, date, sum))
+hist(stepsPerDay, xlab = "Steps Per Day", main = "Histogram of Steps Taken Each Day", breaks = 20)
+```
 
+2. And then calculate the **mean** and **median** total number of steps taken per day.
+```{r}
+meanStepsPerDay <- mean(stepsPerDay)
+medianStepsPerDay <- median(stepsPerDay)
+```
+- Mean number of steps taken per day is `r meanStepsPerDay`.
+- Median number of steps taken per day is `r medianStepsPerDay`.
 
 ## What is the average daily activity pattern?
 
+We need to calculate the average steps per interval (averaged across all days).
+```{r}
+meanStepsPerInterval <- with(activity, tapply(steps, interval, mean, na.rm = TRUE))
+```
 
+And then plot it.
+```{r daily-pattern-plot}
+plot(rownames(meanStepsPerInterval), meanStepsPerInterval, type = "l", main = "Average Daily Activity Pattern", xlab = "Interval", ylab = "Average Steps Taken")
+```
+
+Finally, figure out which interval had the most steps.
+```{r}
+mostActiveInterval <- meanStepsPerInterval[which.max(meanStepsPerInterval)]
+```
+
+The 5-minute interval with the maximum average number of steps is `r names(mostActiveInterval)`.
 
 ## Imputing missing values
 
+```{r missing values}
+totalMissingValues = sum(is.na(activity$steps))
+```
 
+There are `r totalMissingValues` missing values in the original data. We will create a copy of that data and fill in any missing values using the mean values for the respective intervals.
+
+```{r}
+newActivity <- activity
+newActivity[is.na(newActivity$steps), 'steps'] <- apply(newActivity[is.na(newActivity$steps), ], 1, function(x) {
+        meanStepsPerInterval[x['interval']] 
+    })
+```
+
+We again create a histogram showing the total number of steps taken each day (this time with all values filled in).
+```{r new-steps-per-day-histogram}
+newStepsPerDay <- with(newActivity, tapply(steps, date, sum))
+hist(newStepsPerDay, xlab = "Steps Per Day", main = "Histogram of Steps Taken Each Day", breaks = 20)
+```
+
+And again calculate the **mean** and **median** total number of steps taken per day.
+```{r}
+newMeanStepsPerDay <- mean(newStepsPerDay)
+newMedianStepsPerDay <- median(newStepsPerDay)
+```
+- Mean number of steps taken per day is now `r newMeanStepsPerDay` (previously `r meanStepsPerDay`).
+- Median number of steps taken per day is now `r newMedianStepsPerDay` (previously `r medianStepsPerDay`)..
+
+The total number of steps has increased from `r sum(stepsPerDay)` to `r sum(newStepsPerDay)`. 
+Note that the mean is unchanged, which is somewhat surprising since we added so many new rows. However, it appears that in many cases where data was missing, it was missing for the entire day so those days were completely ignored in the original calculations. And, since those new values were populated with the means from the original calculations, the means remain unchanged. (The original data only included values for `r length(stepsPerDay)` days, while filling in missing values expanded that number to `r length(newStepsPerDay)`.)
+
+There was, however, a slight change to the median steps per day since adding new values will obviously shift where the middle value will be found.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+To analyze activity on weekends versus weekdays, we need to add a new factor.
+
+```{r}
+newActivity$wday <- as.factor(ifelse(weekdays(newActivity[['date']]) %in% c("Saturday", "Sunday"), "weekend", "weekday"))
+```
+
+We can now plot comparing average weekend and weekday activity for each time interval.
+
+```{r weekend-weekday-plot}
+```
+
+*Note: Still haven't figured out the plot. Hopefully you won't see this since I will have figured it out before the deadline.*
