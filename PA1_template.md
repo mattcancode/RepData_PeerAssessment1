@@ -112,5 +112,15 @@ newActivity$wday <- as.factor(ifelse(weekdays(newActivity[['date']]) %in% c("Sat
 We can now plot comparing average weekend and weekday activity for each time interval.
 
 
+```r
+library(lattice)
+library(data.table)
 
-*Note: Still haven't figured out the plot. Hopefully you won't see this since I will have figured it out before the deadline.*
+dt <- data.table(newActivity[, c("steps", "interval", "wday")])
+setkey(dt, interval, wday)
+X <- dt[, list(avgsteps = mean(steps)), by = key(dt)]
+
+xyplot(X$avgsteps ~ X$interval | X$wday, t = "l", layout=c(1,2), xlab = "Interval", ylab = "Number of Steps")
+```
+
+![](PA1_template_files/figure-html/weekend-weekday-plot-1.png) 
